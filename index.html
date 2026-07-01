@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="KORA：你的 AI 中国艺术朋友与数字美术馆。在 Telegram 上生成国风艺术、探索真实中国文化。">
+<meta name="keywords" content="KORA,KORA美术馆,Telegram AI艺术,Kora_china_bot,中国AI艺术生成,国风AI绘画,数字虚拟美术馆">
+<title>KORA — 你的 AI 中国艺术朋友与数字美术馆</title>
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  color:#2C2C2C;
+  background:#FBF7F0;
+  line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* ===== Typography ===== */
+h1,h2,h3{font-family:"Noto Serif SC","STSong","SimSun","Songti SC",serif;font-weight:700;line-height:1.3}
+h1{font-size:clamp(2rem,5vw,3.2rem)}
+h2{font-size:clamp(1.6rem,3.5vw,2.2rem);text-align:center;margin-bottom:.5em}
+h3{font-size:1.2rem}
+
+/* ===== Navigation ===== */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  background:rgba(251,247,240,.95);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(200,164,92,.2);
+  padding:0 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+  transition:box-shadow .3s;
+}
+.nav.scrolled{box-shadow:0 2px 20px rgba(0,0,0,.08)}
+.nav-logo{
+  font-family:"Noto Serif SC",serif;
+  font-size:1.5rem;font-weight:700;
+  color:#C23B2E;
+  text-decoration:none;
+  letter-spacing:2px;
+}
+.nav-logo span{color:#C8A45C}
+.nav-links{display:flex;list-style:none;gap:1.8rem;align-items:center}
+.nav-links a{
+  text-decoration:none;color:#2C2C2C;
+  font-size:.9rem;font-weight:500;
+  position:relative;
+  transition:color .3s;
+}
+.nav-links a::after{
+  content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;
+  background:#C8A45C;transition:width .3s;
+}
+.nav-links a:hover,.nav-links a.active{color:#C23B2E}
+.nav-links a:hover::after,.nav-links a.active::after{width:100%}
+
+/* Lang Switch */
+.lang-switch{
+  background:none;border:1.5px solid #C8A45C;color:#C8A45C;
+  padding:6px 14px;border-radius:20px;cursor:pointer;
+  font-size:.85rem;font-weight:600;
+  transition:all .3s;
+}
+.lang-switch:hover{background:#C8A45C;color:#fff}
+
+/* Hamburger */
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px}
+.hamburger span{display:block;width:24px;height:2px;background:#2C2C2C;transition:all .3s}
+.hamburger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.active span:nth-child(2){opacity:0}
+.hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+
+/* ===== Hero Section ===== */
+.hero{
+  position:relative;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;
+  padding:6rem 2rem 4rem;
+  overflow:hidden;
+}
+.hero-bg{position:absolute;inset:0;z-index:0}
+.hero-bg canvas{width:100%;height:100%}
+.hero-overlay{
+  position:absolute;inset:0;z-index:1;
+  background:radial-gradient(ellipse at center,transparent 0%,rgba(251,247,240,.85) 70%);
+}
+.hero-content{position:relative;z-index:2;max-width:800px}
+.hero-badge{
+  display:inline-block;
+  background:rgba(200,164,92,.15);
+  color:#C8A45C;
+  padding:6px 20px;border-radius:20px;
+  font-size:.9rem;font-weight:600;
+  margin-bottom:1.5rem;
+  border:1px solid rgba(200,164,92,.3);
+}
+.hero h1{
+  color:#2C2C2C;
+  margin-bottom:.8rem;
+}
+.hero h1 .accent{color:#C23B2E}
+.hero-subtitle{
+  font-size:clamp(1rem,2vw,1.25rem);
+  color:#666;
+  margin-bottom:2.5rem;
+  line-height:1.8;
+}
+.hero-cta{
+  display:inline-flex;align-items:center;gap:10px;
+  background:#C23B2E;color:#fff;
+  padding:14px 36px;border-radius:50px;
+  text-decoration:none;
+  font-size:1.05rem;font-weight:600;
+  transition:all .3s;
+  box-shadow:0 4px 20px rgba(194,59,46,.3);
+}
+.hero-cta:hover{background:#a83228;transform:translateY(-2px);box-shadow:0 8px 30px rgba(194,59,46,.4)}
+.hero-cta .tg-icon{width:22px;height:22px}
+
+/* Scroll Hint */
+.scroll-hint{
+  position:absolute;bottom:40px;left:50%;z-index:2;
+  transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:#C8A45C;font-size:.8rem;animation:bounce 2s infinite;
+}
+.scroll-hint .arrow{width:20px;height:20px;border-right:2px solid #C8A45C;border-bottom:2px solid #C8A45C;transform:rotate(45deg)}
+@keyframes bounce{0%,100%{opacity:.4;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(8px)}}
+
+/* ===== Section Common ===== */
+section{padding:5rem 2rem}
+.section-label{
+  display:inline-block;
+  color:#C8A45C;font-size:.85rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:3px;
+  margin-bottom:.5rem;
+}
+.section-desc{
+  text-align:center;color:#666;
+  max-width:600px;margin:0 auto 3rem;
+  font-size:1rem;line-height:1.8;
+}
+
+/* ===== About Section ===== */
+.about-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:1.5rem;max-width:1100px;margin:0 auto;
+}
+.about-card{
+  background:#fff;border-radius:16px;padding:2rem 1.5rem;
+  text-align:center;
+  border:1px solid rgba(0,0,0,.05);
+  transition:all .3s;
+}
+.about-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08);border-color:rgba(200,164,92,.25)}
+.about-card .icon{
+  font-size:2.5rem;margin-bottom:1rem;display:block;
+}
+.about-card h3{margin-bottom:.6rem;color:#2C2C2C}
+.about-card p{color:#666;font-size:.9rem;line-height:1.7}
+
+/* ===== Features Section ===== */
+.features{background:#fff}
+.features-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:2rem;max-width:1100px;margin:0 auto;
+}
+.feature-card{
+  background:#FBF7F0;border-radius:20px;padding:2.5rem 2rem;
+  text-align:center;position:relative;overflow:hidden;
+  border:1px solid rgba(0,0,0,.04);
+  transition:all .4s;
+}
+.feature-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#C23B2E,#C8A45C);
+  transform:scaleX(0);transition:transform .4s;
+}
+.feature-card:hover::before{transform:scaleX(1)}
+.feature-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(0,0,0,.1)}
+.feature-card .f-icon{font-size:3rem;margin-bottom:1.2rem;display:block}
+.feature-card h3{margin-bottom:.8rem}
+.feature-card p{color:#666;font-size:.9rem;line-height:1.7}
+
+/* ===== Tutorial Section ===== */
+.steps{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:2rem;max-width:1000px;margin:0 auto;
+}
+.step{
+  text-align:center;position:relative;
+  padding:2rem 1.5rem;
+}
+.step-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,#C23B2E,#C8A45C);
+  color:#fff;font-size:1.4rem;font-weight:700;
+  margin-bottom:1.2rem;
+}
+.step h3{margin-bottom:.5rem}
+.step p{color:#666;font-size:.9rem;line-height:1.6}
+.step:not(:last-child)::after{
+  content:'';position:absolute;
+  top:28px;right:-1rem;
+  width:2rem;height:2px;
+  background:linear-gradient(90deg,#C8A45C,transparent);
+}
+
+/* ===== Testimonial Section ===== */
+.testimonial{background:#fff}
+.testimonial-card{
+  max-width:700px;margin:0 auto;
+  background:#FBF7F0;border-radius:20px;padding:3rem 2.5rem;
+  text-align:center;position:relative;
+  border:1px solid rgba(200,164,92,.2);
+}
+.testimonial-card .quote-mark{
+  font-size:4rem;color:rgba(200,164,92,.3);
+  position:absolute;top:1rem;left:2rem;
+  font-family:Georgia,serif;line-height:1;
+}
+.testimonial-card blockquote{
+  font-size:1.05rem;color:#555;line-height:1.9;
+  margin-bottom:1.5rem;font-style:italic;
+}
+.testimonial-card .author{font-weight:600;color:#2C2C2C}
+
+/* Rating Stars */
+.rating{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin:1.5rem 0;
+}
+.rating .score{font-size:2.5rem;font-weight:700;color:#C23B2E;font-family:"Noto Serif SC",serif}
+.rating .stars{color:#C8A45C;font-size:1.4rem;letter-spacing:2px}
+.rating .label{color:#666;font-size:.9rem;margin-left:8px}
+
+/* ===== Why Section ===== */
+.why-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:1.5rem;max-width:1100px;margin:0 auto;
+}
+.why-card{
+  background:#fff;border-radius:16px;padding:2rem;
+  display:flex;gap:1.2rem;align-items:flex-start;
+  border:1px solid rgba(0,0,0,.05);
+  transition:all .3s;
+}
+.why-card:hover{border-color:rgba(200,164,92,.3);box-shadow:0 8px 30px rgba(0,0,0,.06);transform:translateY(-3px)}
+.why-icon{font-size:2.2rem;flex-shrink:0}
+.why-text h3{font-size:1.05rem;margin-bottom:.4rem}
+.why-text p{color:#666;font-size:.88rem;line-height:1.7}
+
+/* ===== FAQ Section ===== */
+.faq{background:#fff}
+.faq-list{max-width:700px;margin:0 auto}
+.faq-item{
+  border-bottom:1px solid rgba(0,0,0,.08);
+  padding:1.2rem 0;
+}
+.faq-q{
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;font-weight:600;font-size:1.05rem;
+  padding:.5rem 0;color:#2C2C2C;
+  transition:color .3s;
+  user-select:none;
+}
+.faq-q:hover{color:#C23B2E}
+.faq-q .plus{font-size:1.5rem;color:#C8A45C;transition:transform .3s;flex-shrink:0}
+.faq-item.active .faq-q .plus{transform:rotate(45deg)}
+.faq-a{
+  max-height:0;overflow:hidden;
+  color:#666;font-size:.95rem;line-height:1.8;
+  transition:max-height .4s ease,padding .4s;
+}
+.faq-item.active .faq-a{max-height:300px;padding:.5rem 0 1rem}
+
+/* ===== Footer ===== */
+.footer{
+  background:#2C2C2C;color:rgba(255,255,255,.7);
+  text-align:center;padding:3rem 2rem;
+}
+.footer .footer-logo{
+  font-family:"Noto Serif SC",serif;
+  font-size:1.3rem;color:#fff;margin-bottom:.8rem;
+}
+.footer .footer-logo span{color:#C8A45C}
+.footer p{margin:.4rem 0;font-size:.9rem}
+.footer .footer-tg{
+  display:inline-flex;align-items:center;gap:8px;
+  color:#C8A45C;text-decoration:none;font-weight:600;
+  margin-top:1rem;padding:10px 24px;
+  border:1px solid rgba(200,164,92,.4);border-radius:50px;
+  transition:all .3s;
+}
+.footer .footer-tg:hover{background:rgba(200,164,92,.1)}
+.footer .footer-bottom{margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);font-size:.8rem}
+
+/* ===== Decorative Elements ===== */
+.cloud-decor{
+  position:absolute;z-index:0;opacity:.04;
+  pointer-events:none;
+}
+.cloud-decor.left{left:-80px;top:20%}
+.cloud-decor.right{right:-60px;bottom:15%}
+
+/* ===== Animations ===== */
+.fade-in{
+  opacity:0;transform:translateY(30px);
+  transition:opacity .6s,transform .6s;
+}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+
+/* ===== Responsive ===== */
+@media(max-width:768px){
+  .nav-links{
+    position:fixed;top:64px;left:0;right:0;
+    background:rgba(251,247,240,.98);
+    flex-direction:column;gap:0;
+    max-height:0;overflow:hidden;
+    transition:max-height .4s,padding .4s;
+    backdrop-filter:blur(10px);
+  }
+  .nav-links.show{max-height:500px;padding:1rem 0;border-bottom:1px solid rgba(200,164,92,.2)}
+  .nav-links a{display:block;padding:.8rem 2rem;text-align:center}
+  .hamburger{display:flex}
+  .step:not(:last-child)::after{display:none}
+  section{padding:3.5rem 1.2rem}
+  .hero{padding:5rem 1.2rem 3rem}
+  .testimonial-card{padding:2rem 1.5rem}
+}
+
+@media(max-width:480px){
+  .nav{padding:0 1rem}
+  .hero-cta{padding:12px 28px;font-size:.95rem}
+  .about-grid,.why-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Navigation ===== -->
+<header class="nav" id="nav">
+  <a href="#" class="nav-logo">K<span>O</span>RA</a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#about" data-i18n="nav.about">关于</a></li>
+    <li><a href="#features" data-i18n="nav.features">功能</a></li>
+    <li><a href="#tutorial" data-i18n="nav.tutorial">教程</a></li>
+    <li><a href="#experience" data-i18n="nav.experience">体验</a></li>
+    <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <button class="lang-switch" id="langSwitch" onclick="switchLang()" aria-label="Switch Language">EN</button>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- ===== Hero Section ===== -->
+<section class="hero" id="hero">
+  <div class="hero-bg"><canvas id="heroCanvas"></canvas></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge" data-i18n="hero.badge">🎨 AI × 国风艺术</div>
+    <h1 data-i18n="hero.title">KORA：你的<span class="accent">AI 中国艺术朋友</span>与数字美术馆</h1>
+    <p class="hero-subtitle" data-i18n="hero.subtitle">在 Telegram 上，用中文生成中国风艺术、探索真实文化、连接创意灵魂</p>
+    <a href="https://t.me/Kora_china_bot" target="_blank" rel="noopener" class="hero-cta">
+      <svg class="tg-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.96 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.46-1.901-.903-1.056-.692-1.653-1.123-2.678-1.798-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.015-.15-.056-.212s-.174-.04-.249-.024c-.106.024-1.793 1.14-5.062 3.345-.48.33-.913.49-1.302.48-.428-.009-1.252-.242-1.865-.441-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.015 3.333-1.386 4.025-1.627 4.477-1.635.099-.002.321.023.465.14.12.098.153.23.168.323.016.094.036.307.02.474z"/></svg>
+      <span data-i18n="hero.cta">在 Telegram 立即体验</span>
+    </a>
+  </div>
+  <div class="scroll-hint">
+    <span data-i18n="hero.scroll">向下探索</span>
+    <div class="arrow"></div>
+  </div>
+</section>
+
+<!-- ===== About Section ===== -->
+<section id="about">
+  <p class="section-label" data-i18n="about.label">关于 KORA</p>
+  <h2 data-i18n="about.title">你的线上中国向导与 AI 艺术助手</h2>
+  <p class="section-desc" data-i18n="about.desc">KORA 是一款运行在 Telegram 上的 AI 驱动应用机器人，核心定位为「你的中国朋友（Your friend in China）」，帮助海内外用户链接真实的中国本土人群、生活方式与文化内核。</p>
+  <div class="about-grid">
+    <div class="about-card fade-in">
+      <span class="icon">🌏</span>
+      <h3 data-i18n="about.card1.title">文化连接</h3>
+      <p data-i18n="about.card1.desc">打破信息壁垒，全方位了解真实的中国日常生活、特色美食、原创设计与本土潮流趋势。</p>
+    </div>
+    <div class="about-card fade-in">
+      <span class="icon">🎨</span>
+      <h3 data-i18n="about.card2.title">AI 艺术创作</h3>
+      <p data-i18n="about.card2.desc">支持中文指令交互，一键生成水墨国画、传统古风、现代主义、国风街头艺术等多元风格。</p>
+    </div>
+    <div class="about-card fade-in">
+      <span class="icon">🏛️</span>
+      <h3 data-i18n="about.card3.title">虚拟美术馆</h3>
+      <p data-i18n="about.card3.desc">内置 AI 策展体系，浏览、生成专属艺术藏品，足不出户沉浸式漫游线上画廊。</p>
+    </div>
+    <div class="about-card fade-in">
+      <span class="icon">💬</span>
+      <h3 data-i18n="about.card4.title">智能聊天</h3>
+      <p data-i18n="about.card4.desc">不仅是一个工具，更是一位懂艺术、懂国风、懂本土潮流的 AI 好友，随时交流创意灵感。</p>
+    </div>
+    <div class="about-card fade-in">
+      <span class="icon">⚡</span>
+      <h3 data-i18n="about.card5.title">零门槛上手</h3>
+      <p data-i18n="about.card5.desc">依托 Telegram 平台无缝运行，无需下载额外 APP，基础功能免费开放，实时互动极速生成。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Features Section ===== -->
+<section class="features" id="features">
+  <p class="section-label" data-i18n="features.label">核心功能</p>
+  <h2 data-i18n="features.title">四大核心能力，解锁国风创意新体验</h2>
+  <p class="section-desc" data-i18n="features.desc">从 AI 绘画到虚拟美术馆，KORA 为你打开一扇通往中国艺术世界的大门。</p>
+  <div class="features-grid">
+    <div class="feature-card fade-in">
+      <span class="f-icon">🖼️</span>
+      <h3 data-i18n="features.f1.title">AI 国风艺术生成</h3>
+      <p data-i18n="features.f1.desc">输入中文创意指令，如「融合敦煌壁画元素与赛博朋克风格的上海夜景」，数十秒内生成高清艺术图像。内置传统水墨、古风写意、新中式潮流等全品类风格模板，支持迭代精修。</p>
+    </div>
+    <div class="feature-card fade-in">
+      <span class="f-icon">🏛️</span>
+      <h3 data-i18n="features.f2.title">虚拟数字美术馆</h3>
+      <p data-i18n="features.f2.desc">创新打造线上虚拟美术馆，内置中国当代 AI 艺术展、传统国风复刻展、新中式创意艺术展等主题画廊。交互+创作+观赏一体化，沉浸感远超传统静态艺术网站。</p>
+    </div>
+    <div class="feature-card fade-in">
+      <span class="f-icon">🔍</span>
+      <h3 data-i18n="features.f3.title">中国本土文化连接</h3>
+      <p data-i18n="features.f3.desc">不止于艺术生成——咨询国内小众设计师推荐、城市艺术打卡地、国风潮流趋势，KORA 都能精准挖掘优质本土资源，实现「AI 艺术 + 本土生活」的深度融合。</p>
+    </div>
+    <div class="feature-card fade-in">
+      <span class="f-icon">🎯</span>
+      <h3 data-i18n="features.f4.title">全能实用工具</h3>
+      <p data-i18n="features.f4.desc">集智能聊天、高清图像生成、作品社区分享于一体。作品支持本地保存、随时查看、一键分享。隐私保护完善，用户作品仅个人可见，无泄露风险。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Tutorial Section ===== -->
+<section id="tutorial">
+  <p class="section-label" data-i18n="tutorial.label">快速上手</p>
+  <h2 data-i18n="tutorial.title">四步开启你的国风创作之旅</h2>
+  <p class="section-desc" data-i18n="tutorial.desc">无需下载、无需注册额外账号，在 Telegram 中一分钟内即可开始创作。</p>
+  <div class="steps">
+    <div class="step fade-in">
+      <div class="step-num">1</div>
+      <h3 data-i18n="tutorial.step1.title">打开 Telegram</h3>
+      <p data-i18n="tutorial.step1.desc">在 Telegram 中搜索官方账号 <strong>@Kora_china_bot</strong>，点击进入对话界面。</p>
+    </div>
+    <div class="step fade-in">
+      <div class="step-num">2</div>
+      <h3 data-i18n="tutorial.step2.title">启动机器人</h3>
+      <p data-i18n="tutorial.step2.desc">点击「开始」按钮，KORA 会自动推送欢迎文案和可视化功能菜单，一目了然。</p>
+    </div>
+    <div class="step fade-in">
+      <div class="step-num">3</div>
+      <h3 data-i18n="tutorial.step3.title">输入创意指令</h3>
+      <p data-i18n="tutorial.step3.desc">用中文描述你想要的画面，例如「水墨风格的江南水乡清晨」，越详细效果越精准。</p>
+    </div>
+    <div class="step fade-in">
+      <div class="step-num">4</div>
+      <h3 data-i18n="tutorial.step4.title">生成、精修、分享</h3>
+      <p data-i18n="tutorial.step4.desc">数十秒内获得高清作品，可迭代精修细节、调整构图，满意后保存本地或一键分享。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Testimonial Section ===== -->
+<section class="testimonial" id="experience">
+  <p class="section-label" data-i18n="exp.label">真实体验</p>
+  <h2 data-i18n="exp.title">深度用户一周体验报告</h2>
+  <p class="section-desc" data-i18n="exp.desc">来自真实用户的完整使用反馈——KORA 完美诠释了「AI + 国风文化」的创新融合。</p>
+  <div class="testimonial-card fade-in">
+    <span class="quote-mark">"</span>
+    <blockquote data-i18n="exp.quote">KORA 打破传统 AI 绘画工具的单一创作属性，将 AI 艺术与中国本土文化、生活潮流深度绑定。不仅是创作工具，更是一位懂艺术、懂国风、懂本土潮流的 AI 好友。告别被动浏览，支持主动创作、自主探索、沉浸式观展，体验感远超同类工具。</blockquote>
+    <p class="author">— KORA 深度体验用户</p>
+    <div class="rating">
+      <span class="score">9</span>
+      <span class="stars">★★★★★</span>
+      <span class="label">/ 10</span>
+    </div>
+    <p style="color:#888;font-size:.85rem" data-i18n="exp.ratingLabel">综合评分：目前 Telegram 平台上最优质的国风 AI 艺术与文化体验工具之一</p>
+  </div>
+</section>
+
+<!-- ===== Why Section ===== -->
+<section id="why">
+  <p class="section-label" data-i18n="why.label">为什么选择 KORA</p>
+  <h2 data-i18n="why.title">专为国人打造的 AI 艺术与文化平台</h2>
+  <p class="section-desc" data-i18n="why.desc">在众多 AI 工具中，KORA 凭借对中国文化的深度理解和极致的易用性脱颖而出。</p>
+  <div class="why-grid">
+    <div class="why-card fade-in">
+      <span class="why-icon">🇨🇳</span>
+      <div class="why-text">
+        <h3 data-i18n="why.w1.title">文化高度亲和</h3>
+        <p data-i18n="why.w1.desc">全中文交互，深耕中国传统与现代国风元素，贴合国人审美与文化认知，无水土不服问题。</p>
+      </div>
+    </div>
+    <div class="why-card fade-in">
+      <span class="why-icon">🚀</span>
+      <div class="why-text">
+        <h3 data-i18n="why.w2.title">极致便捷高效</h3>
+        <p data-i18n="why.w2.desc">依托 Telegram 运行，无需下载安装、无需配置环境，零门槛随时使用，打开即创作。</p>
+      </div>
+    </div>
+    <div class="why-card fade-in">
+      <span class="why-icon">👥</span>
+      <div class="why-text">
+        <h3 data-i18n="why.w3.title">全人群创意赋能</h3>
+        <p data-i18n="why.w3.desc">适配学生美育、设计师灵感创作、艺术爱好者休闲创作、自媒体内容产出等多场景。</p>
+      </div>
+    </div>
+    <div class="why-card fade-in">
+      <span class="why-icon">🔮</span>
+      <div class="why-text">
+        <h3 data-i18n="why.w4.title">契合未来趋势</h3>
+        <p data-i18n="why.w4.desc">AI 技术赋能传统文化传播、国风文化出海的创新标杆工具，兼具实用性与前瞻性。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ Section ===== -->
+<section class="faq" id="faq">
+  <p class="section-label" data-i18n="faq.label">常见问题</p>
+  <h2 data-i18n="faq.title">关于 KORA，你可能想了解</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q1">如何开始使用 KORA？</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a"><p data-i18n="faq.a1">在 Telegram 中搜索官方账号 <strong>@Kora_china_bot</strong>，点击「开始」即可进入交互界面。产品全程支持纯中文交互，Bot 内置可视化菜单与智能指令引导，新手可一键直达核心功能，无需记忆复杂指令。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q2">KORA 是免费的吗？</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a"><p data-i18n="faq.a2">基础 AI 艺术生成、虚拟观展、文化咨询等功能<strong>永久免费</strong>，满足绝大多数用户日常使用。高级高清导出、定制化创作等进阶功能需订阅解锁。产品采用分级权益模式，免费额度充足。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q3">我的作品和隐私安全有保障吗？</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a"><p data-i18n="faq.a3">用户作品数据<strong>自主可控</strong>，支持本地保存与自主分享。平台无强制收集、公开用户创作内容的行为。用户生成作品仅个人可见，可自主决定是否分享，隐私安全有充分保障。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q4">支持哪些艺术风格？生成速度如何？</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a"><p data-i18n="faq.a4">KORA 内置丰富风格模板，涵盖传统水墨、古风写意、现代国风抽象、新中式潮流、街头国潮、赛博国风等全品类风格。常规时段图像生成仅需<strong>数秒至数十秒</strong>，画质高清、细节饱满。仅高峰期存在轻微排队，整体不影响使用体验。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="footer">
+  <div class="footer-logo">K<span>O</span>RA</div>
+  <p data-i18n="footer.tagline">你的 AI 中国艺术朋友与数字美术馆</p>
+  <a href="https://t.me/Kora_china_bot" target="_blank" rel="noopener" class="footer-tg">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.96 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.46-1.901-.903-1.056-.692-1.653-1.123-2.678-1.798-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.015-.15-.056-.212s-.174-.04-.249-.024c-.106.024-1.793 1.14-5.062 3.345-.48.33-.913.49-1.302.48-.428-.009-1.252-.242-1.865-.441-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.015 3.333-1.386 4.025-1.627 4.477-1.635.099-.002.321.023.465.14.12.098.153.23.168.323.016.094.036.307.02.474z"/></svg>
+    @Kora_china_bot
+  </a>
+  <div class="footer-bottom">
+    <p data-i18n="footer.copyright">&copy; 2024 KORA. All rights reserved. | 在 Telegram 上体验最优质的国风 AI 艺术。</p>
+  </div>
+</footer>
+
+<!-- ===== JavaScript ===== -->
+<script>
+/* ===== i18n ===== */
+const i18n = {
+  zh: {
+    'nav.about':'关于','nav.features':'功能','nav.tutorial':'教程','nav.experience':'体验','nav.faq':'FAQ',
+    'hero.badge':'🎨 AI × 国风艺术',
+    'hero.title':'KORA：你的<span class="accent">AI 中国艺术朋友</span>与数字美术馆',
+    'hero.subtitle':'在 Telegram 上，用中文生成中国风艺术、探索真实文化、连接创意灵魂',
+    'hero.cta':'在 Telegram 立即体验','hero.scroll':'向下探索',
+    'about.label':'关于 KORA','about.title':'你的线上中国向导与 AI 艺术助手',
+    'about.desc':'KORA 是一款运行在 Telegram 上的 AI 驱动应用机器人，核心定位为「你的中国朋友（Your friend in China）」，帮助海内外用户链接真实的中国本土人群、生活方式与文化内核。',
+    'about.card1.title':'文化连接','about.card1.desc':'打破信息壁垒，全方位了解真实的中国日常生活、特色美食、原创设计与本土潮流趋势。',
+    'about.card2.title':'AI 艺术创作','about.card2.desc':'支持中文指令交互，一键生成水墨国画、传统古风、现代主义、国风街头艺术等多元风格。',
+    'about.card3.title':'虚拟美术馆','about.card3.desc':'内置 AI 策展体系，浏览、生成专属艺术藏品，足不出户沉浸式漫游线上画廊。',
+    'about.card4.title':'智能聊天','about.card4.desc':'不仅是一个工具，更是一位懂艺术、懂国风、懂本土潮流的 AI 好友，随时交流创意灵感。',
+    'about.card5.title':'零门槛上手','about.card5.desc':'依托 Telegram 平台无缝运行，无需下载额外 APP，基础功能免费开放，实时互动极速生成。',
+    'features.label':'核心功能','features.title':'四大核心能力，解锁国风创意新体验',
+    'features.desc':'从 AI 绘画到虚拟美术馆，KORA 为你打开一扇通往中国艺术世界的大门。',
+    'features.f1.title':'AI 国风艺术生成','features.f1.desc':'输入中文创意指令，如「融合敦煌壁画元素与赛博朋克风格的上海夜景」，数十秒内生成高清艺术图像。内置传统水墨、古风写意、新中式潮流等全品类风格模板，支持迭代精修。',
+    'features.f2.title':'虚拟数字美术馆','features.f2.desc':'创新打造线上虚拟美术馆，内置中国当代 AI 艺术展、传统国风复刻展、新中式创意艺术展等主题画廊。交互+创作+观赏一体化，沉浸感远超传统静态艺术网站。',
+    'features.f3.title':'中国本土文化连接','features.f3.desc':'不止于艺术生成——咨询国内小众设计师推荐、城市艺术打卡地、国风潮流趋势，KORA 都能精准挖掘优质本土资源，实现「AI 艺术 + 本土生活」的深度融合。',
+    'features.f4.title':'全能实用工具','features.f4.desc':'集智能聊天、高清图像生成、作品社区分享于一体。作品支持本地保存、随时查看、一键分享。隐私保护完善，用户作品仅个人可见，无泄露风险。',
+    'tutorial.label':'快速上手','tutorial.title':'四步开启你的国风创作之旅',
+    'tutorial.desc':'无需下载、无需注册额外账号，在 Telegram 中一分钟内即可开始创作。',
+    'tutorial.step1.title':'打开 Telegram','tutorial.step1.desc':'在 Telegram 中搜索官方账号 <strong>@Kora_china_bot</strong>，点击进入对话界面。',
+    'tutorial.step2.title':'启动机器人','tutorial.step2.desc':'点击「开始」按钮，KORA 会自动推送欢迎文案和可视化功能菜单，一目了然。',
+    'tutorial.step3.title':'输入创意指令','tutorial.step3.desc':'用中文描述你想要的画面，例如「水墨风格的江南水乡清晨」，越详细效果越精准。',
+    'tutorial.step4.title':'生成、精修、分享','tutorial.step4.desc':'数十秒内获得高清作品，可迭代精修细节、调整构图，满意后保存本地或一键分享。',
+    'exp.label':'真实体验','exp.title':'深度用户一周体验报告',
+    'exp.desc':'来自真实用户的完整使用反馈——KORA 完美诠释了「AI + 国风文化」的创新融合。',
+    'exp.quote':'KORA 打破传统 AI 绘画工具的单一创作属性，将 AI 艺术与中国本土文化、生活潮流深度绑定。不仅是创作工具，更是一位懂艺术、懂国风、懂本土潮流的 AI 好友。告别被动浏览，支持主动创作、自主探索、沉浸式观展，体验感远超同类工具。',
+    'exp.ratingLabel':'综合评分：目前 Telegram 平台上最优质的国风 AI 艺术与文化体验工具之一',
+    'why.label':'为什么选择 KORA','why.title':'专为国人打造的 AI 艺术与文化平台',
+    'why.desc':'在众多 AI 工具中，KORA 凭借对中国文化的深度理解和极致的易用性脱颖而出。',
+    'why.w1.title':'文化高度亲和','why.w1.desc':'全中文交互，深耕中国传统与现代国风元素，贴合国人审美与文化认知，无水土不服问题。',
+    'why.w2.title':'极致便捷高效','why.w2.desc':'依托 Telegram 运行，无需下载安装、无需配置环境，零门槛随时使用，打开即创作。',
+    'why.w3.title':'全人群创意赋能','why.w3.desc':'适配学生美育、设计师灵感创作、艺术爱好者休闲创作、自媒体内容产出等多场景。',
+    'why.w4.title':'契合未来趋势','why.w4.desc':'AI 技术赋能传统文化传播、国风文化出海的创新标杆工具，兼具实用性与前瞻性。',
+    'faq.label':'常见问题','faq.title':'关于 KORA，你可能想了解',
+    'faq.q1':'如何开始使用 KORA？','faq.a1':'在 Telegram 中搜索官方账号 <strong>@Kora_china_bot</strong>，点击「开始」即可进入交互界面。产品全程支持纯中文交互，Bot 内置可视化菜单与智能指令引导，新手可一键直达核心功能，无需记忆复杂指令。',
+    'faq.q2':'KORA 是免费的吗？','faq.a2':'基础 AI 艺术生成、虚拟观展、文化咨询等功能<strong>永久免费</strong>，满足绝大多数用户日常使用。高级高清导出、定制化创作等进阶功能需订阅解锁。产品采用分级权益模式，免费额度充足。',
+    'faq.q3':'我的作品和隐私安全有保障吗？','faq.a3':'用户作品数据<strong>自主可控</strong>，支持本地保存与自主分享。平台无强制收集、公开用户创作内容的行为。用户生成作品仅个人可见，可自主决定是否分享，隐私安全有充分保障。',
+    'faq.q4':'支持哪些艺术风格？生成速度如何？','faq.a4':'KORA 内置丰富风格模板，涵盖传统水墨、古风写意、现代国风抽象、新中式潮流、街头国潮、赛博国风等全品类风格。常规时段图像生成仅需<strong>数秒至数十秒</strong>，画质高清、细节饱满。仅高峰期存在轻微排队，整体不影响使用体验。',
+    'footer.tagline':'你的 AI 中国艺术朋友与数字美术馆',
+    'footer.copyright':'© 2024 KORA. All rights reserved. | 在 Telegram 上体验最优质的国风 AI 艺术。'
+  },
+  en: {
+    'nav.about':'About','nav.features':'Features','nav.tutorial':'Guide','nav.experience':'Reviews','nav.faq':'FAQ',
+    'hero.badge':'🎨 AI × Chinese Art',
+    'hero.title':'KORA: Your <span class="accent">AI Chinese Art Friend</span> & Digital Gallery',
+    'hero.subtitle':'Generate Chinese-style art, explore authentic culture, and connect with creative souls — all within Telegram.',
+    'hero.cta':'Try on Telegram Now','hero.scroll':'Scroll Down',
+    'about.label':'About KORA','about.title':'Your Online Chinese Guide & AI Art Assistant',
+    'about.desc':'KORA is an AI-powered bot running on Telegram, positioned as "Your friend in China". It helps users worldwide connect with authentic Chinese local communities, lifestyles, and cultural heritage.',
+    'about.card1.title':'Cultural Bridge','about.card1.desc':'Break through information barriers and discover authentic Chinese daily life, cuisine, original design, and local trends.',
+    'about.card2.title':'AI Art Creation','about.card2.desc':'Chinese-language prompt support. Generate ink wash, traditional, modernist, and street-style Chinese art in one click.',
+    'about.card3.title':'Virtual Art Museum','about.card3.desc':'AI-curated exhibition system. Browse and create exclusive art collections, experiencing immersive gallery tours from home.',
+    'about.card4.title':'Smart Chat','about.card4.desc':'More than a tool — an AI friend who understands art, Chinese aesthetics, and local trends. Exchange creative ideas anytime.',
+    'about.card5.title':'Zero Barrier','about.card5.desc':'Seamlessly runs on Telegram. No extra app download needed. Free core features, real-time interaction, lightning-fast generation.',
+    'features.label':'Core Features','features.title':'Four Pillars of Chinese Art Creation',
+    'features.desc':'From AI painting to a virtual art museum, KORA opens a gateway to the world of Chinese art.',
+    'features.f1.title':'AI Chinese Art Generation','features.f1.desc':'Enter creative prompts like "Shanghai skyline blending Dunhuang mural elements with cyberpunk style" and get high-definition artwork in seconds. Covers ink wash, traditional, neo-Chinese, and street styles with refinement support.',
+    'features.f2.title':'Virtual Digital Museum','features.f2.desc':'An innovative online gallery featuring Chinese Contemporary AI Art, Traditional Revival, and Neo-Chinese Creative exhibitions. Seamlessly integrates viewing, creating, and interacting — far more immersive than static art websites.',
+    'features.f3.title':'Chinese Culture Connection','features.f3.desc':'Beyond art — ask for niche designer recommendations, urban art spots, and Chinese trend insights. KORA uncovers quality local resources, deeply integrating AI art with authentic cultural lifestyle.',
+    'features.f4.title':'All-in-One Toolkit','features.f4.desc':'Smart chat, HD image generation, and community sharing in one bot. Save locally, view anytime, share instantly. Strong privacy protection — your creations remain private and under your control.',
+    'tutorial.label':'Quick Start','tutorial.title':'Start Your Chinese Art Journey in 4 Steps',
+    'tutorial.desc':'No download, no extra registration needed. Start creating within one minute on Telegram.',
+    'tutorial.step1.title':'Open Telegram','tutorial.step1.desc':'Search for <strong>@Kora_china_bot</strong> on Telegram and open the chat interface.',
+    'tutorial.step2.title':'Launch the Bot','tutorial.step2.desc':'Tap "Start" — KORA auto-sends a welcome message and visual menu. Everything is clear at a glance.',
+    'tutorial.step3.title':'Enter Your Prompt','tutorial.step3.desc':'Describe your vision in Chinese or English, e.g. "Ink-wash Jiangnan water town at dawn". More detail yields more precise results.',
+    'tutorial.step4.title':'Generate, Refine, Share','tutorial.step4.desc':'Get HD artwork in seconds. Iterate on details and composition, then save locally or share with one tap.',
+    'exp.label':'User Experience','exp.title':'One-Week Deep-Dive Review',
+    'exp.desc':'Real user feedback — KORA perfectly embodies the innovative fusion of AI and Chinese cultural art.',
+    'exp.quote':'KORA breaks the single-purpose mould of traditional AI art tools by deeply integrating AI art with authentic Chinese culture and lifestyle trends. It is not just a creative tool, but an AI companion who understands art, Chinese aesthetics, and local culture. Move beyond passive browsing — actively create, explore, and immerse yourself in exhibitions.',
+    'exp.ratingLabel':'Overall Rating: One of the finest Chinese-style AI art and cultural experience tools on Telegram.',
+    'why.label':'Why KORA','why.title':'An AI Art & Culture Platform Built for You',
+    'why.desc':'Among countless AI tools, KORA stands out with its deep understanding of Chinese culture and extreme ease of use.',
+    'why.w1.title':'Culturally Native','why.w1.desc':'Full Chinese-language interaction, deeply rooted in traditional and modern Chinese aesthetics. Perfectly aligned with Chinese cultural sensibilities.',
+    'why.w2.title':'Effortlessly Convenient','why.w2.desc':'Runs on Telegram — no installation, no configuration, zero learning curve. Open and create, anytime.',
+    'why.w3.title':'For Everyone','why.w3.desc':'From art students and designers to hobbyists and content creators — KORA empowers every creative scenario.',
+    'why.w4.title':'Future-Ready','why.w4.desc':'An innovative benchmark for AI-powered cultural heritage and global Chinese art dissemination. Both practical and forward-looking.',
+    'faq.label':'FAQ','faq.title':'Things You Might Want to Know',
+    'faq.q1':'How do I start using KORA?','faq.a1':'Search for <strong>@Kora_china_bot</strong> on Telegram and tap "Start" to enter the chat. KORA supports full Chinese-language interaction with built-in visual menus and smart guidance — no complex commands to memorize.',
+    'faq.q2':'Is KORA free?','faq.a2':'Basic AI art generation, virtual gallery tours, and cultural consultation are <strong>permanently free</strong>, covering most daily needs. Advanced HD export and custom creation features require a subscription. The free tier is generous.',
+    'faq.q3':'Is my artwork and privacy protected?','faq.a3':'Your artwork data is <strong>fully under your control</strong>. Save locally and share on your own terms. KORA does not forcibly collect or publicly expose user creations. Your works remain private — share only when you choose to.',
+    'faq.q4':'What art styles are supported? How fast is generation?','faq.a4':'KORA offers a rich template library spanning traditional ink wash, classical freehand, modern abstract, neo-Chinese trends, street-style Guochao, and cyber-Chinese aesthetics. Typical generation takes only <strong>seconds to tens of seconds</strong> with HD quality and rich detail. Minor queuing may occur during peak hours but does not affect the overall experience.',
+    'footer.tagline':'Your AI Chinese Art Friend & Digital Gallery',
+    'footer.copyright':'© 2024 KORA. All rights reserved. | The finest Chinese-style AI art experience on Telegram.'
+  }
+};
+
+let currentLang = 'zh';
+
+function switchLang(){
+  currentLang = currentLang === 'zh' ? 'en' : 'zh';
+  const btn = document.getElementById('langSwitch');
+  btn.textContent = currentLang === 'zh' ? 'EN' : '中';
+  document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+
+  const translations = i18n[currentLang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if(translations[key]){
+      el.innerHTML = translations[key];
+    }
+  });
+}
+
+/* ===== FAQ Accordion ===== */
+function toggleFaq(qEl){
+  const item = qEl.parentElement;
+  item.classList.toggle('active');
+}
+
+/* ===== Mobile Menu ===== */
+function toggleMenu(){
+  document.getElementById('hamburger').classList.toggle('active');
+  document.getElementById('navLinks').classList.toggle('show');
+}
+
+// Close mobile menu on link click
+document.querySelectorAll('#navLinks a').forEach(link => {
+  link.addEventListener('click',() => {
+    document.getElementById('hamburger').classList.remove('active');
+    document.getElementById('navLinks').classList.remove('show');
+  });
+});
+
+/* ===== Scroll Spy ===== */
+const nav = document.getElementById('nav');
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('#navLinks a');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+      });
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+
+sections.forEach(s => observer.observe(s));
+
+// Nav shadow on scroll
+window.addEventListener('scroll',() => {
+  nav.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+/* ===== Fade-in Animation ===== */
+const fadeObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      entry.target.classList.add('visible');
+    }
+  });
+},{threshold:0.15});
+
+document.querySelectorAll('.fade-in').forEach(el => fadeObserver.observe(el));
+
+/* ===== Hero Canvas Particles ===== */
+(function(){
+  const canvas = document.getElementById('heroCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let animId;
+
+  function resize(){
+    canvas.width = canvas.parentElement.offsetWidth;
+    canvas.height = canvas.parentElement.offsetHeight;
+  }
+
+  class Particle{
+    constructor(){
+      this.reset();
+      this.y = Math.random() * canvas.height;
+    }
+    reset(){
+      this.x = Math.random() * canvas.width;
+      this.y = canvas.height + 10;
+      this.size = Math.random() * 3 + 1;
+      this.speedY = -(Math.random() * 0.4 + 0.15);
+      this.speedX = (Math.random() - 0.5) * 0.3;
+      this.opacity = Math.random() * 0.5 + 0.1;
+      this.color = Math.random() > 0.7 ? '200,164,92' : '194,59,46';
+    }
+    update(){
+      this.x += this.speedX;
+      this.y += this.speedY;
+      if(this.y < -10 || this.x < -10 || this.x > canvas.width + 10){
+        this.reset();
+        this.y = canvas.height + 10;
+      }
+    }
+    draw(){
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${this.color},${this.opacity})`;
+      ctx.fill();
+    }
+  }
+
+  function initParticles(){
+    const count = Math.min(80, Math.floor(canvas.width / 15));
+    particles = Array.from({length:count}, () => new Particle());
+  }
+
+  function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p => { p.update(); p.draw(); });
+    animId = requestAnimationFrame(animate);
+  }
+
+  resize();
+  initParticles();
+  animate();
+
+  window.addEventListener('resize',() => {
+    resize();
+    initParticles();
+  });
+})();
+</script>
+
+</body>
+</html>
